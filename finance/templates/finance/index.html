@@ -1,0 +1,313 @@
+<!-- {% load static %} -->
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AlgoFinance</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
+    integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+  <script src="https://d3js.org/d3.v4.min.js"></script>
+  
+
+
+  <style>
+    .top-nav a {
+      /* float: left; */
+      color: white;
+      text-decoration: none;
+      font-size: 0.9rem;
+      padding: 0.1rem 0.9rem 0.1rem 0.9rem;
+    }
+
+
+    .top-nav a:hover {
+      color: black;
+      background-color: white;
+    }
+
+    .bg-theme {
+      background-color: rgb(23, 60, 99);
+    }
+
+    .theme-font {
+      color: white;
+      text-decoration: none;
+    }
+
+    .theme-font:hover {
+      color: white;
+
+    }
+
+    .card {
+      box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2);
+      transition: 0.3s;
+    }
+
+    .card:hover {
+      box-shadow: 0 8px 16px 0 rgba(0, 0, 0, 0.2);
+    }
+
+    .present {
+      background-color: rgb(54, 222, 113);
+    }
+  </style>
+</head>
+
+<body>
+  <!-- navbar -->
+  <div class="top-nav-header" style="background-color: rgb(23, 60, 99);">
+    <nav class="navbar navbar-expand-lg">
+      <div class="container-fluid">
+        <a class="navbar-brand theme-font" href="#">AlgoFinance</a>
+      </div>
+    </nav>
+    <!-- thin navbar below main navbar -->
+    <nav class="navbar navbar-sm container-fluid" style="background-color: black;">
+      <!-- links aligned on left on navbar -->
+      <div style="justify-content: space-between; margin-left: 10px;">
+          <a class="theme-font" style="margin-left: 20px; cursor: pointer;" href="{% url 'home' %}">Home</a>
+          <a class="theme-font" style="margin-left: 20px; cursor: pointer;" href="{% url 'adminPanel' %}">Stock Data</a>
+          <a class="theme-font" style="margin-left: 20px; cursor: pointer;" href="{% url 'news' %}">Stock News</a>
+          </div>
+        </nav>
+  </div>
+  {% block body %}
+
+  <!-- section -->
+  <div class="container" style="margin-top: 10vh;">
+    <div class="row">
+      <div class="col-md-8">
+        <div class="chart-container">
+          <svg id="line-chart" style="width: 100%;"></svg>
+        </div>
+
+      </div>
+      <div class="col-md-4">
+        <div class="container recos card" style="overflow-y: scroll; max-height:60vh;">
+          {% for index in stocks_data %}
+          <h6 style="text-align: center;">{{index.0}}</h6>
+          <table id="stocks" class="table table-bordered">
+            <thead>
+              <tr>
+                <th scope="col">Stock</th>
+                <th scope="col">Recommendation</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for stock in index.1 %}
+              <tr style="cursor: pointer;">
+                <th id="{{index.0}}">{{stock.0}}</th>
+                {% if stock.1 == "Bullish" %}
+                <td style="background-color: rgb(82, 143, 82); color: white;">{{stock.1}}</td>
+                {% else %}
+                <td style="background-color: rgb(205, 57, 57); color: white;">{{stock.1}}</td>
+                {% endif %}
+              </tr>
+              {% endfor %}
+
+            </tbody>
+          </table>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endblock %}
+  <script>
+    // ################## Controllers ########################
+
+
+    // #######################################################
+
+    const containerWidth = $("#line-chart").parent().width();
+    const margin = { top: 20, right: 20, bottom: 30, left: 50 };
+    const width = containerWidth - margin.left - margin.right;
+    const height = 0.6*width - margin.top - margin.bottom;
+
+    const x = d3.scaleTime().range([0, width]);
+    const y = d3.scaleLinear().range([height, 0]);
+
+
+    $(document).ready(function () {
+      $('tbody').on('click', 'th', function () {
+        const stock_symbol = $(this).text();
+        const stock_index = $(this).attr("id");
+        $.ajax({
+          type: 'POST',
+          url: 'stock_data/get/',
+          data: {
+            'stock_symbol': stock_symbol,
+            'stock_index': stock_index,
+            csrfmiddlewaretoken: '{{ csrf_token }}'
+          },
+          success: function (stock_data) {
+
+            stock_data.forEach(function (d) {
+              d.date = new Date(d.date);
+              d.close = d.close;
+            });
+
+            d3.select("#line-chart").selectAll("*").remove();
+
+            const line = d3.line()
+              .x(function (d) { return x(d.date); })
+              .y(function (d) { return y(d.close); });
+
+            const svg = d3.select("#line-chart")
+              .attr("width", width + margin.left + margin.right)
+              .attr("height", height + margin.top + margin.bottom)
+              .append("g")
+              .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+            const xAxis = d3.axisBottom(x);
+            const yAxis = d3.axisLeft(y);
+
+            x.domain(d3.extent(stock_data, function (d) { return d.date; }));
+
+
+            // Calculate the maximum value in the dataset
+            const maxClose = d3.max(stock_data, function (d) { return d.close; });
+
+            // Calculate the padding
+            const padding = (maxClose - d3.min(stock_data, function (d) { return d.close; })) / 4;
+
+            // Set the y domain with padding
+            y.domain([d3.min(stock_data, function (d) { return d.close; }) - padding, maxClose + padding]);
+
+            svg.append("g")
+              .attr("transform", "translate(0," + height + ")")
+              .call(xAxis);
+
+            svg.append("g")
+              .call(yAxis);
+
+            svg.append("path")
+              .datum(stock_data)
+              .attr("fill", "none")
+              .attr("stroke", "steelblue")
+              .attr("stroke-linejoin", "round")
+              .attr("stroke-linecap", "round")
+              .attr("stroke-width", 1.5)
+              .attr("d", line);
+
+            //50 day moving average line
+            const ma_50 = cal_moving_average(stock_data);
+            svg.append("path")
+              .datum(ma_50)
+              .attr("fill", "none")
+              .attr("stroke", "orange")  // You can choose any color for the line
+              .attr("stroke-width", 1.5)
+              .attr("d", line);
+
+            // 20 day moving average
+            const ma_20 = cal_moving_average(stock_data, period = 20);
+            svg.append("path")
+              .datum(ma_20)
+              .attr("fill", "none")
+              .attr("stroke", "black")  // You can choose any color for the line
+              .attr("stroke-width", 1.5)
+              .attr("d", line);
+
+            // legends
+            // Create a legend
+            const legend = svg.append("g")
+              .attr("class", "legend")
+              .attr("transform", "translate(" + (width - 100) + ", 20)");
+
+            // Add legend for the stock line
+            legend.append("rect")
+              .attr("x", 0)
+              .attr("y", 0)
+              .attr("width", 10)
+              .attr("height", 10)
+              .style("fill", "steelblue");
+            legend.append("text")
+              .attr("x", 15)
+              .attr("y", 5)
+              .attr("dy", ".20em")
+              .style("text-anchor", "start")
+              .style("font-size","12px")
+              .text("Stock Close");
+
+            // Add legend for the moving average line
+            legend.append("rect")
+              .attr("x", 0)
+              .attr("y", 20)
+              .attr("width", 10)
+              .attr("height", 10)
+              .style("fill", "orange");
+            legend.append("text")
+              .attr("x", 15)
+              .attr("y", 25)
+              .attr("dy", ".20em")
+              .style("text-anchor", "start")
+              .style("font-size","12px")
+              .text("50-DMA");
+
+            legend.append("rect")
+              .attr("x", 0)
+              .attr("y", 40)
+              .attr("width", 10)
+              .attr("height", 10)
+              .style("fill", "black");
+            legend.append("text")
+              .attr("x", 15)
+              .attr("y", 45)
+              .attr("dy", ".20em")
+              .style("text-anchor", "start")
+              .style("font-size","12px")
+              .text("20-DMA");
+          },
+          error: function (error) {
+            console.error(error);
+          }
+        });
+      });
+    });
+
+
+    // moving average function
+    const cal_moving_average = (stock_data, period = 50) => {
+      const movingAveragePeriod = period;
+      const movingAverage = [];
+      for (let i = movingAveragePeriod - 1; i < stock_data.length; i++) {
+        let sum = 0;
+        for (let j = 0; j < movingAveragePeriod; j++) {
+          sum += stock_data[i - j].close;
+        }
+        movingAverage.push({ date: stock_data[i].date, close: sum / movingAveragePeriod });
+      }
+      return movingAverage;
+    }
+
+
+    $('#update_records').on('click', function () {
+        $("#update_cell").text("Updating the records...");
+        $.ajax({
+          type: 'GET',
+          url: "{% url 'update_records' %}",
+          success: function (response) {
+            console.log(response)
+            $("#update_cell").text("Last updated : "+response.last_updated);
+           },
+          error: {}
+        })
+      });
+  </script>
+<!-- <script src="{% static 'finance/index.js' %}"></script> -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+    integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
+    crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.8/dist/umd/popper.min.js"
+    integrity="sha384-I7E8VVD/ismYTF4hNIPjVp/Zjvgyol6VFvRkX/vR+Vc4jQkC+hVqc2pM8ODewa9r"
+    crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.min.js"
+    integrity="sha384-0pUGZvbkm6XF6gxjEnlmuGrJXVbNuzT9qBBavbLwCsOGabYfZo0T0to5eqruptLy"
+    crossorigin="anonymous"></script>
+</body>
+
+</html>

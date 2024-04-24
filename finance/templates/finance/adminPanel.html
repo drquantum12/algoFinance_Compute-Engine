@@ -1,0 +1,25 @@
+{% extends 'finance/index.html' %}
+{% block body %}
+
+<div class="container" style="display: flex; justify-content: center;margin-top: 10vh;">
+    <table id="stocks" class="table table-bordered">
+        <thead>
+          <tr>
+            <th scope="col">Task</th>
+            <th scope="col">Description</th>
+            <th scope="col">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <th>Stock Records Update</th>
+                <td id="update_cell">Last updated : {{last_updated}}</td>
+                <td><button id="update_records" class="btn btn-sm btn-success">Update Records</button></td>
+            </tr>
+        </tbody>
+    </table>
+
+</div>
+
+
+{% endblock %}
