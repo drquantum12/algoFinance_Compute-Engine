@@ -1,0 +1,46 @@
+step 1: 
+install supervisor (sudo apt install supervisor)
+copy supervisord.conf file at /etc (echo_supervisord_conf > /etc/supervisord.conf)
+
+step 2:
+adding setting for gunicorn in supervisor conf file like below
+--------------------------------------------------------------
+[program:gunicorn]
+command=/home/arjunsinghtomar03511/env/bin/gunicorn -w 3 app.wsgi:application
+directory=/home/arjunsinghtomar03511/app
+user=arjunsinghtomar03511 ; on my mac it will be drquantum
+autostart=true
+autorestart=true
+redirect_stderr=true
+
+step 3:
+
+pasting the configuration in nginx configuration file like below:
+-----------------------------------------------------------------
+location / {
+      # checks for static file, if not found proxy to app
+      try_files $uri @proxy_to_app;
+    }
+
+    location @proxy_to_app {
+      proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+      proxy_set_header X-Forwarded-Proto $scheme;
+      proxy_set_header Host $http_host;
+      # we don't want nginx trying to do something clever with
+      # redirects, we set the Host: header above already.
+      proxy_redirect off;
+      proxy_pass http://localhost:8000;
+    }
+
+    step 4:
+    start the application using :
+    a. sudo supervisord
+    b. sudo supervisorctl
+    c. sudo /opt/bitnami/ctlscript.sh status (check status of services running)
+    d. sudo /opt/bitnami/ctlscript.sh start (start services)
+    e. sudo /opt/bitnami/ctlscript.sh restart nginx (restart any particular service)
+
+    step 5:
+    if any change is made in application, restart gunicorn
+    a. supervisorctl
+    b. restart gunicorn
