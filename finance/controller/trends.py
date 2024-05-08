@@ -2,33 +2,85 @@ import numpy as np
 import pandas as pd
 import os
 import re
+import json
+from kiteconnect import KiteConnect
+import datetime as dt
+from configparser import ConfigParser
 
-list_of_indices = [i for i in os.listdir("files/indices_stock_data") if not i.startswith(".")]
+config = ConfigParser()
+config.read("files/configuration.ini")
+
+# list_of_indices = [i for i in os.listdir("files/indices_stock_data") if not i.startswith(".")]
+stock_data = pd.read_csv("files/stock_data.csv")
+instruments = pd.read_csv("files/instruments.csv")
 
 position_dict = {"buy": 1, "sell": 0}
 
-def get_stock_trend():
-    stocks = dict()
+def instrumentLookup(instrument_df,symbol=None):
+    """Looks up instrument token for a given script from instrument dump"""
+    try:
+        return instrument_df[instrument_df.tradingsymbol == symbol].instrument_token.values[0]
+    except:
+        return -1
 
-    for index in list_of_indices:
-        temp = list()
+def get_stock_trend(request=None, kite_client=None, duration=30, interval="60minute"):
+    api_key = config.get("kite", "api_key")
+    access_token = config.get("kite", "access_token")
 
-        for stock_file in os.listdir("files/indices_stock_data/"+index):
-            stock = pd.read_csv(f"files/indices_stock_data/{index}/{stock_file}")
+    if kite_client is None:
+        kite_client = KiteConnect(api_key=api_key)
+        kite_client.set_access_token(access_token=access_token)
+        
+    # call below code if last updated date is not today
+    if config.get("status_config", "last_updated") != str(dt.date.today().strftime("%d-%m-%Y")):
+        stocks = dict()
+        stock_symbols = stock_data.Symbol.values
+        for stock_symbol in stock_symbols:
+                instrument_tokens = instrumentLookup(instruments, symbol=stock_symbol)
+                if instrument_tokens != -1:
+                    stock = pd.DataFrame(kite_client.historical_data(instrument_tokens,dt.date.today()-dt.timedelta(duration), dt.date.today(),interval)).rename(columns={"close":"Close"})
+                    try:
+                        stock_symb, potential = filter_stock(stock, stock_symbol=stock_symbol)
+
+                        if stock_symb:
+                            stocks[stock_symb] = potential
+                    except:
+                        pass
+        with open("stocks.json", "w") as file:
+            json.dump(stocks, file)
+        
+        # upated last_updated date in configuration file
+        config.set("status_config", "last_updated", str(dt.date.today().strftime("%d-%m-%Y")))
+        with open("files/configuration.ini", "w") as file:
+            config.write(file)
+        return list(stocks.items())
+    else:
+        with open("stocks.json", "r") as file:
+            stocks = json.load(file)
+        return list(stocks.items())
+
+# def get_stock_trend():
+#     stocks = dict()
+
+#     for index in list_of_indices:
+#         temp = list()
+
+#         for stock_file in os.listdir("files/indices_stock_data/"+index):
+#             stock = pd.read_csv(f"files/indices_stock_data/{index}/{stock_file}")
             
-            try:
-                stock_symbol = stock_file.split(".")[0]
-                stock_symb, potential = filter_stock(stock, stock_symbol=stock_symbol)
+#             try:
+#                 stock_symbol = stock_file.split(".")[0]
+#                 stock_symb, potential = filter_stock(stock, stock_symbol=stock_symbol)
 
-                if stock_symb:
-                    temp.append((stock_symb, potential))
-            except:
-                pass
-        if len(temp) != 0:
-            stocks[index] = temp
+#                 if stock_symb:
+#                     temp.append((stock_symb, potential))
+#             except:
+#                 pass
+#         if len(temp) != 0:
+#             stocks[index] = temp
     
 
-    return stocks.items()
+#     return stocks.items()
 
 # for identifying long term bearish MACD and long term bullish MACD
 

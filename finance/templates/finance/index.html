@@ -88,8 +88,7 @@
       </div>
       <div class="col-md-4">
         <div class="container recos card" style="overflow-y: scroll; max-height:60vh;">
-          {% for index in stocks_data %}
-          <h6 style="text-align: center;">{{index.0}}</h6>
+    
           <table id="stocks" class="table table-bordered">
             <thead>
               <tr>
@@ -98,9 +97,9 @@
               </tr>
             </thead>
             <tbody>
-              {% for stock in index.1 %}
+              {% for stock in stocks_data %}
               <tr style="cursor: pointer;">
-                <th id="{{index.0}}">{{stock.0}}</th>
+                <th id="{{stock.0}}">{{stock.0}}</th>
                 {% if stock.1 == "Bullish" %}
                 <td style="background-color: rgb(82, 143, 82); color: white;">{{stock.1}}</td>
                 {% else %}
@@ -111,7 +110,6 @@
 
             </tbody>
           </table>
-          {% endfor %}
         </div>
       </div>
     </div>
