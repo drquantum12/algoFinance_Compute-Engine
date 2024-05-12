@@ -43,7 +43,7 @@ def login(request):
     if not request_token:
         return redirect(login_url)
 
-    kite = get_kite_client()
+    kite = KiteConnect(api_key=kite_api_key)
     data = kite.generate_session(request_token, api_secret=kite_api_secret)
     config.set("kite", "access_token", data["access_token"])
     with open("files/configuration.ini", "w") as file:
