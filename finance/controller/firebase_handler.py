@@ -6,7 +6,7 @@ GOOGLE_APPLICATION_CREDENTIALS = "google-credentials.json"
 
 class FirestoreHandler:
     def __init__(self):
-        self.db = firestore.Client(project='tradegradient')
+        self.db = firestore.Client(project='finance-version-1')
 
     def add_document(self, collection_name, document_name, data):
         self.doc_ref = self.db.collection(collection_name).document(document_name)
@@ -39,7 +39,7 @@ class FirestoreHandler:
 
 class CloudStorageHandler:
     def __init__(self):
-        self.storage_client = storage.Client(project='tradegradient')
+        self.storage_client = storage.Client(project='finance-version-1')
 
     def upload_blob(self, bucket_name, source_file_name, destination_blob_name):
         self.bucket = self.storage_client.bucket(bucket_name)

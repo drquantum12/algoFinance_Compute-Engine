@@ -1,7 +1,9 @@
 step 1: 
+installing ssl certificate on server : sudo opt/bitnami/bncert-tool
 install supervisor (sudo apt install supervisor)
 copy supervisord.conf file at /etc (echo_supervisord_conf > /etc/supervisord.conf)
 
+git token : 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
 step 2:
 adding setting for gunicorn in supervisor conf file like below
 --------------------------------------------------------------
@@ -13,10 +15,17 @@ autostart=true
 autorestart=true
 redirect_stderr=true
 
+checking if nginx conf file is fine : sudo nginx -t
+
 step 3:
 
 pasting the configuration in nginx configuration file like below:
 -----------------------------------------------------------------
+
+nano server_blocks/default-https-server-block.conf
+
+# paste below configuration in conf file : 
+
 location / {
       # checks for static file, if not found proxy to app
       try_files $uri @proxy_to_app;
