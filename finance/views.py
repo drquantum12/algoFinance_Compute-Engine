@@ -42,9 +42,14 @@ def login(request):
     request_token = request.GET.get('request_token')
     if not request_token:
         return redirect(login_url)
+    
+    config.set("kite","request_token",request_token)
+    with open("files/configuration.ini", "w") as file:
+        config.write(file)
 
     kite = KiteConnect(api_key=kite_api_key)
     data = kite.generate_session(request_token, api_secret=kite_api_secret)
+    kite.set_access_token(data["access_token"])
     config.set("kite", "access_token", data["access_token"])
     with open("files/configuration.ini", "w") as file:
         config.write(file)
