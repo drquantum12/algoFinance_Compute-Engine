@@ -60,12 +60,40 @@ def home(request):
     try:
         kite_client=get_kite_client()
         stocks_data = trends.get_stock_trend(request=request, kite_client=kite_client, duration=30, interval="60minute")
-        context = {"stocks_data":stocks_data}
+        news_list = firebase_handler.FirestoreHandler().read_collection("news")
+
+        sector_wise_sentiments = {'Banking': {'Positive': 1}, 'Auto': {'Positive': 1}, 'FMCG': {'Negative': 2, 'Positive': 2, 'Neutral': 1}, 'Energy': {}, 'Industrial': {'Positive': 1}, 'Healthcare': {'Neutral': 2}, 'Services': {'Negative': 2, 'Neutral': 4, 'Positive': 2}, 'Media': {}, 'Transportation': {'Negative': 1, 'Neutral': 1}, 'Tech': {'Positive': 2, 'Negative': 1, 'Neutral': 1}, 'Telecom': {'Positive': 1}}
+        sector_wise_sentiments = {
+            "Banking": {},
+            "Auto": {},
+            "FMCG": {},
+            "Energy": {},
+            "Industrial": {},
+            "Healthcare": {},
+            "Services": {},
+            "Media": {},
+            "Transportation": {},
+            "Tech": {},
+            "Telecom": {}
+        }
+        for news in news_list:
+            if news["sentiment"] == "Positive":
+                sector_wise_sentiments[news["tag"]]["Positive"] = sector_wise_sentiments[news["tag"]].get("Positive", 0) + 1
+            elif news["sentiment"] == "Negative":
+                sector_wise_sentiments[news["tag"]]["Negative"] = sector_wise_sentiments[news["tag"]].get("Negative", 0) + 1
+            else:
+                sector_wise_sentiments[news["tag"]]["Neutral"] = sector_wise_sentiments[news["tag"]].get("Neutral", 0) + 1
+        
+
+        context = {
+            "stocks_data":stocks_data,
+            "sector_wise_sentiments": sector_wise_sentiments,
+            }
+
         return render(request, "finance/index.html", context=context)
     except:
         return redirect(login_url)
     
-
 def news(request):
     news = firebase_handler.FirestoreHandler().read_collection("news")
     context = {"news_list":news}
