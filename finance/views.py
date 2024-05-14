@@ -62,7 +62,7 @@ def home(request):
         stocks_data = trends.get_stock_trend(request=request, kite_client=kite_client, duration=30, interval="60minute")
         news_list = firebase_handler.FirestoreHandler().read_collection("news")
 
-        sector_wise_sentiments = {'Banking': {'Positive': 1}, 'Auto': {'Positive': 1}, 'FMCG': {'Negative': 2, 'Positive': 2, 'Neutral': 1}, 'Energy': {}, 'Industrial': {'Positive': 1}, 'Healthcare': {'Neutral': 2}, 'Services': {'Negative': 2, 'Neutral': 4, 'Positive': 2}, 'Media': {}, 'Transportation': {'Negative': 1, 'Neutral': 1}, 'Tech': {'Positive': 2, 'Negative': 1, 'Neutral': 1}, 'Telecom': {'Positive': 1}}
+        # sector_wise_sentiments = {'Banking': {'Positive': 1}, 'Auto': {'Positive': 1}, 'FMCG': {'Negative': 2, 'Positive': 2, 'Neutral': 1}, 'Energy': {}, 'Industrial': {'Positive': 1}, 'Healthcare': {'Neutral': 2}, 'Services': {'Negative': 2, 'Neutral': 4, 'Positive': 2}, 'Media': {}, 'Transportation': {'Negative': 1, 'Neutral': 1}, 'Tech': {'Positive': 2, 'Negative': 1, 'Neutral': 1}, 'Telecom': {'Positive': 1}}
         sector_wise_sentiments = {
             "Banking": {},
             "Auto": {},
@@ -93,11 +93,21 @@ def home(request):
         return render(request, "finance/index.html", context=context)
     except:
         return redirect(login_url)
-    
-def news(request):
+
+# for route news/<news_type:str>/, news_type is a string
+def news(request, news_type=None):
     news = firebase_handler.FirestoreHandler().read_collection("news")
-    context = {"news_list":news}
-    return render(request, "finance/news.html", context=context)
+    if news_type == None:
+        context = {"news_list":news}
+        return render(request, "finance/news.html", context=context)
+    else:
+        news_list = []
+        for news_item in news:
+            if news_item["tag"] == news_type:
+                news_list.append(news_item)
+        context = {"news_list":news_list}
+        return render(request, "finance/news.html", context=context)
+    
 
 def stock_data(request):
     if request.method == "POST":
