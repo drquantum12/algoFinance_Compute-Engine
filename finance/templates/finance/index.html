@@ -86,7 +86,7 @@
         </div> -->
         <div class="d-flex flex-wrap justify-content-center">
             {% for sector, sentiment in sector_wise_sentiments.items %}
-            <!-- <a href="{% url 'news' news_type={{sector}} %}"> -->
+            <a style="text-decoration: None;" href="{% url 'news' news_type=sector %}">
             <div class="card p-2 m-1" style=" width: 300px; max-height: 300px; max-width: 300px; background-image: url(https://storage.googleapis.com/tradegradient_bucket/images/sector_images/{{sector}}.jpeg);">
                 <h6 class="card-title"><span class="card p-1" style="background-color: white;">{{sector}}</span></h6>
               <div class="card-body">
@@ -103,7 +103,7 @@
                 </div>
               </div>
             </div>
-          <!-- </a> -->
+          </a>
             {% endfor %}
           </div>
     </div>
