@@ -4,6 +4,7 @@ import os
 import re
 from configparser import ConfigParser
 from datetime import datetime
+from kiteconnect import KiteConnect
 
 # from google.cloud import storage
 # from django.conf import settings
@@ -19,28 +20,51 @@ from datetime import datetime
 
 #     objects = bucket.list_blobs(prefix=object_name)
 #     return objects
+config = ConfigParser()
+config.read("files/configuration.ini")
 
-indices_files = [file for file in os.listdir("files/indices") if not file.startswith(".")]
+# Create your views here.
+kite_api_key = config.get("kite", "api_key")
+kite_api_secret = config.get("kite", "api_secret")
+
+# Login url
+login_url = "https://kite.zerodha.com/connect/login?api_key={api_key}".format(api_key=kite_api_key)
+
+# Kite connect console url
+console_url = "https://developers.kite.trade/apps/{api_key}".format(api_key=kite_api_key)
 
 config = ConfigParser()
 config.read("files/configuration.ini")
 
+# def login(request):
+#     request_token = request.GET.get('request_token')
+#     if not request_token:
+#         return redirect(login_url)
+    
+#     config.set("kite","request_token",request_token)
+#     with open("files/configuration.ini", "w") as file:
+#         config.write(file)
+
+#     kite = KiteConnect(api_key=kite_api_key)
+#     data = kite.generate_session(request_token, api_secret=kite_api_secret)
+#     kite.set_access_token(data["access_token"])
+#     config.set("kite", "access_token", data["access_token"])
+#     with open("files/configuration.ini", "w") as file:
+#         config.write(file)
+#     return redirect("home")
+
+def get_kite_client(config=config):
+    """Returns a kite client object
+    """
+    access_token = config.get("kite", "access_token")
+
+    kite = KiteConnect(api_key=kite_api_key)
+    if access_token:
+        kite.set_access_token(access_token=access_token)
+    return kite
+
 def updateStockData():
-        for index in indices_files:
-            try:
-                index_folder_name = index.replace(".csv","")
-                pattern = r'ind_|_?list'
-                index_folder_name = re.sub(pattern, "", index_folder_name).replace("nifty","nifty ").capitalize()
-                os.makedirs(f"files/indices_stock_data/{index_folder_name}", exist_ok=True)
-
-                df_index = pd.read_csv(f"files/indices/{index}")
-
-                for symbol in df_index.Symbol.values:
-                    stock_name = f"{symbol}.NS"
-                    stock = yfinance.Ticker(stock_name).history(period="60d", interval="1d")[["Close", "Volume"]]
-                    stock.to_csv(f"files/indices_stock_data/{index_folder_name}/{stock_name}.csv")
-            except Exception as e:
-                print(e)
+        
         with open("files/configuration.ini", "w") as configFile:
              config.set("status_config","last_updated", datetime.today().strftime("%d-%m-%Y"))
              config.write(configFile)
